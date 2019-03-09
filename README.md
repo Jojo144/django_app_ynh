@@ -1,0 +1,1 @@
+# ynh_django_app
