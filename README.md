@@ -32,11 +32,11 @@ sudo yunohost app install -f --debug /vagrant/ynh_django_app -a "domain=ynh.loca
 
 ## Assumptions
 
-The code in the repository of your application is supposed to be organised as follow:
+The code in the repository of your application is supposed to contain:
 
   - requirements.txt
   - DjangoProjectName/settings_local.py
-  - DjangoProjectName/settings_local.py
+
 
 
 ## Under the hood
