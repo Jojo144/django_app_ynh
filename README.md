@@ -17,3 +17,9 @@ yunohost app install https://code.ffdn.org/ljf/wifiwithme_ynh.git -a "domain=wif
 ## À customiser
 
 - `name` dans `manifest.json`
+- variables dans `scripts/_common.sh`
+
+
+## TODO
+mysite.wsgi
+local.py

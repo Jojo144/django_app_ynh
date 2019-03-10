@@ -1,119 +1,77 @@
 #!/bin/bash
 
-set -eu
-
-# Source YunoHost helpers
+source _common.sh
 source /usr/share/yunohost/helpers
+
 
 app=$YNH_APP_INSTANCE_NAME
 
-# Retrieve arguments
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
 admin=$YNH_APP_ARG_ADMIN
-email=$YNH_APP_ARG_EMAIL
+# email=$YNH_APP_ARG_EMAIL
 
-secret=$(ynh_string_random 24) # A bug don't allow to do random string bigger than 24
+final_path=/opt/$app
+
+ynh_clean_setup () {
+    ynh_print_info "Cleaning the aborted install. You may want to unistall dependencies also."
+    sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
+    sudo systemctl nginx reload
+    sudo yunohost service remove $app
+    sudo rm -f /etc/systemd/system/$app.service
+    sudo systemctl daemon-reload
+    sudo userdel $app
+    sudo rm -Rf $final_path
+}
+
+ynh_abort_if_errors
 
 
 
 # Check if admin exists
-ynh_user_exists $admin \
+ynh_user_exists $admin 
     || ynh_die "Wrong admin"
 
 ynh_app_setting_set "$app" admin "$admin"
-ynh_app_setting_set "$app" email "$email"
+# ynh_app_setting_set "$app" email "$email"
 
+secret=$(ynh_string_random 24) # A bug don't allow to do random string bigger than 24
 ynh_app_setting_set "$app" secret "$secret"
+
 # FIXME: crash si le path est ≠ « / »
 # Check domain/path availability
 sudo yunohost app checkurl "${domain}${path}" -a "$app" \
     || ynh_die "Path not available: ${domain}${path}"
 
 # Dependencies
-ynh_package_install python3-pip python3-virtualenv libldap2-dev libsasl2-dev
+ynh_install_app_dependencies $pkg_dependencies
 
-
-# Delete db and user if exit with an error
-function exit_properly
-{
-    set +e
-  	sudo rm -Rf /opt/$app
-  	sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
-  	sudo systemctl nginx reload
-  	sudo yunohost service remove $app
-  	sudo rm -f /etc/systemd/system/$app.service
-  	sudo systemctl daemon-reload
-    sudo userdel $app
-    sudo rm -Rf $final_path
-    exit 1
-}
-trap exit_properly ERR
-
-
-# Copy files to the right place
-# TODO: dossiers :
-# wwm_ynh fait ça :
-# - /opt/truc
-
-#    - venv/
-#
-# Je pense qu'il est préférable d'avoir
-# - /opt/truc
-#    - app/
-#      - … tous les fichiers de code à ce niveau …
-#    - venv/
-#
-# final_path=/opt/$app
-# venv_path=/opt/$app/venv
-# app_path=/opt/$app/app
-#
-# On ne mélange pas les dépôts git et les venv de bas étage, non mais.
-
-final_path=/opt/$app
 sudo mkdir -p $final_path
-sudo cp -a ../sources/. $final_path
+sudo git clone $app_repo $final_path
+app_path=$final_path/app
 
-# Install venv
-# It seems that python3.4 venv is broken, we need to setup pip manually to fix that
-# http://stackoverflow.com/questions/26215790/venv-doesnt-create-activate-script-python3
-#python3 -m venv --without-pip $final_path/venv
-# Peut-être ça marche sans le hack :
 python3 -m venv  $final_path/venv
 alias venv_python='$final_path/venv/bin/python3'
 alias venv_pip='$final_path/venv/bin/pip'
 # PyMySQL → cryptography → setuptools>=18.5
 # Required on Jessie, Stretch has setuptools>=18.5
-venv_pip install 'setuptools>=18.5'
+# venv_pip install 'setuptools>=18.5'
 
 venv_pip install gunicorn
-venv_pip install -r $final_path/requirements.txt
-venv_pip install django-auth-ldap
+venv_pip install -r $app_path/requirements.txt
 
-# On ne supporte pas les prefix :
-# prefix=/
-# prefix="${path#"/"}/"
-# prefix=${prefix%"/"}
 # Configuration Django
-# TODO: ynh_replace
-sed -i "s@YNH_APP_ARG_ADMIN@$admin@g" ../conf/local.py
-sed -i "s@YNH_APP_ARG_DOMAIN@$domain@g" ../conf/local.py
-sed -i "s@YNH_APP_ARG_PATH@$path@g" ../conf/local.py
-sed -i "s@YNH_APP_PREFIX@$prefix@g" ../conf/local.py
-sed -i "s#YNH_APP_ARG_EMAIL#$email#g" ../conf/local.py
-sed -i "s#YNH_APP_SECRET_KEY#$secret#g" ../conf/local.py
-sed -i "s#YNH_APP_STATIC_ROOT#$final_path/static#g" ../conf/local.py
-# FIXME: wifiwithme
-sudo cp ../conf/local.py $final_path/wifiwithme/settings/local.py
-
-# Pas sur que ça serve, le collectstatic devrait ranger ça au bon endroit…
-# Set production
-# sudo ln -s $final_path/wifiwithme/static $final_path/static
+ynh_replace_string "YNH_APP_ARG_ADMIN" $admin $app_path/local_settings.py
+ynh_replace_string "YNH_APP_ARG_DOMAIN" $domain $app_path/local_settings.py
+ynh_replace_string "YNH_APP_ARG_PATH" $path $app_path/local_settings.py
+ynh_replace_string "YNH_APP_SECRET_KEY" $secret $app_path/local_settings.py
+ynh_replace_string "YNH_APP_STATIC_ROOT" $secret $final_path/static $app_path/local_settings.py
 
 # Set permissions
-# TODO: il doit y avoir un helper ynh_truc
-sudo useradd $app -d $final_path || echo "User already exists" # TODO: ynh_die
+sudo useradd $app -d $final_path || ynh_die "User already exists: ${app}"
 sudo chown -R $app:www-data $final_path
+
+sudo yunohost app addaccess $app -u $admin
 
 
 # Log folder
@@ -121,27 +79,21 @@ sudo mkdir -p /var/log/$app
 sudo chown -R $app /var/log/$app
 sudo chgrp -R www-data /var/log/$app
 
-# Reload Nginx and regenerate SSOwat conf
-# FIXME: c'est peut peut-être une histoire de petit carré dont nous n'avons cure
-sudo yunohost app addaccess $app -u $admin
 
-# FIXME: peut-être le chemin du manage.py est un peu pourri
-sudo -u $app venv_python $final_path/manage.py migrate --noinput
-sudo -u $app venv_python $final_path/manage.py collectstatic --noinput
+sudo -u $app venv_python $app_path/manage.py migrate --noinput
+sudo -u $app venv_python $app_path/manage.py collectstatic --noinput
 # QUESTION: où_collectstatic dépose-t-il ses fichiers ?
 
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
-# TODO: metrte en accord avec ce qu'on a viré dans le nginx.conf
-sed -i "s@PATHTOCHANGE@$path@g" ../conf/nginx.conf
-sed -i "s@ALIASTOCHANGE@$final_path/@g" ../conf/nginx.conf
-sed -i "s@YNH_APP_INSTANCE_NAME@$app@g" ../conf/nginx.conf
+ynh_replace_string "PATHTOCHANGE" $path ../conf/nginx.conf
+ynh_replace_string "YNH_APP_INSTANCE_NAME" $app ../conf/nginx.conf
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
+
 # Service gunicorn
-# TODO: utiliser ynh_replace tabarnak
-sudo sed -i "s@YNH_APP_INSTANCE_NAME@$app@g" ../conf/gunicorn_config.py
-sudo sed -i "s@YNH_APP_INSTANCE_NAME@$app@g" ../conf/gunicorn.service
+ynh_replace_string "YNH_APP_INSTANCE_NAME" $app ../conf/gunicorn_config.py
+ynh_replace_string "YNH_APP_INSTANCE_NAME" $app ../conf/gunicorn.service
 sudo cp ../conf/gunicorn.service /etc/systemd/system/$app.service
 sudo systemctl daemon-reload
 sudo cp ../conf/gunicorn_config.py /opt/$app/
@@ -152,6 +104,7 @@ sudo service nginx reload
 sudo systemctl start $app
 sudo systemctl enable $app
 sudo yunohost service add $app -l /var/log/gunicorn/$app.log
+
 
 # C'est public ! (pas de SSO ynh)
 ynh_app_setting_set "$app" skipped_uris "/"
