@@ -1,5 +1,5 @@
 command = '/opt/YNH_APP_INSTANCE_NAME/venv/bin/gunicorn'
-pythonpath = '/opt/YNH_APP_INSTANCE_NAME'
+pythonpath = '/opt/YNH_APP_INSTANCE_NAME/app'
 workers = 4
 user = 'YNH_APP_INSTANCE_NAME'
 bind = 'unix:/opt/YNH_APP_INSTANCE_NAME/sock'

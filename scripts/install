@@ -9,19 +9,21 @@ app=$YNH_APP_INSTANCE_NAME
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
 admin=$YNH_APP_ARG_ADMIN
-# email=$YNH_APP_ARG_EMAIL
+# adminpasswd=$YNH_APP_ARG_ADMIN # TODO + createsuperuser
+
 
 final_path=/opt/$app
 
 ynh_clean_setup () {
+    # todo: is it done by remove?
     ynh_print_info "Cleaning the aborted install. You may want to unistall dependencies also."
-    sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
-    sudo systemctl nginx reload
-    sudo yunohost service remove $app
-    sudo rm -f /etc/systemd/system/$app.service
-    sudo systemctl daemon-reload
-    sudo userdel $app
-    sudo rm -Rf $final_path
+    # sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
+    # sudo systemctl nginx reload
+    # sudo yunohost service remove $app
+    # sudo rm -f /etc/systemd/system/$app.service
+    # sudo systemctl daemon-reload
+    # sudo userdel $app
+    # sudo rm -Rf $final_path
 }
 
 ynh_abort_if_errors
@@ -33,12 +35,11 @@ ynh_user_exists $admin \
     || ynh_die "Wrong admin"
 
 ynh_app_setting_set "$app" admin "$admin"
-# ynh_app_setting_set "$app" email "$email"
+# todo passwd
 
 secret=$(ynh_string_random 24) # A bug don't allow to do random string bigger than 24
 ynh_app_setting_set "$app" secret "$secret"
 
-# FIXME: crash si le path est ≠ « / »
 # Check domain/path availability
 sudo yunohost app checkurl "${domain}${path}" -a "$app" \
     || ynh_die "Path not available: ${domain}${path}"
@@ -47,25 +48,23 @@ sudo yunohost app checkurl "${domain}${path}" -a "$app" \
 ynh_install_app_dependencies $pkg_dependencies
 
 sudo mkdir -p $final_path
-sudo git clone $app_repo $final_path
 app_path=$final_path/app
+sudo git clone $app_repo $app_path
 
-python3 -m venv  $final_path/venv
-venv_python='$final_path/venv/bin/python3'
-venv_pip='$final_path/venv/bin/pip'
-# PyMySQL → cryptography → setuptools>=18.5
-# Required on Jessie, Stretch has setuptools>=18.5
-# venv_pip install 'setuptools>=18.5'
+python3 -m venv $final_path/venv
+venv_python=$final_path/venv/bin/python3
+venv_pip=$final_path/venv/bin/pip
 
 $venv_pip install gunicorn
 $venv_pip install -r $app_path/requirements.txt
 
 # Configuration Django
-ynh_replace_string "YNH_APP_ARG_ADMIN" $admin $app_path/local_settings.py
-ynh_replace_string "YNH_APP_ARG_DOMAIN" $domain $app_path/local_settings.py
-ynh_replace_string "YNH_APP_ARG_PATH" $path $app_path/local_settings.py
-ynh_replace_string "YNH_APP_SECRET_KEY" $secret $app_path/local_settings.py
-ynh_replace_string "YNH_APP_STATIC_ROOT" $secret $final_path/static $app_path/local_settings.py
+local_settings=$app_path/$project/settings_local.py
+ynh_replace_string "YNH_APP_ARG_ADMIN" $admin $local_settings
+ynh_replace_string "YNH_APP_ARG_DOMAIN" $domain $local_settings
+ynh_replace_string "YNH_APP_ARG_PATH" $path $local_settings
+ynh_replace_string "YNH_APP_SECRET_KEY" $secret $local_settings
+ynh_replace_string "YNH_APP_STATIC_ROOT" $final_path/static $local_settings
 
 # Set permissions
 sudo useradd $app -d $final_path || ynh_die "User already exists: ${app}"
@@ -82,7 +81,6 @@ sudo chgrp -R www-data /var/log/$app
 
 sudo -u $app $venv_python $app_path/manage.py migrate --noinput
 sudo -u $app $venv_python $app_path/manage.py collectstatic --noinput
-# QUESTION: où_collectstatic dépose-t-il ses fichiers ?
 
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
@@ -94,9 +92,10 @@ sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 # Service gunicorn
 ynh_replace_string "YNH_APP_INSTANCE_NAME" $app ../conf/gunicorn_config.py
 ynh_replace_string "YNH_APP_INSTANCE_NAME" $app ../conf/gunicorn.service
+ynh_replace_string "YNH_APP_PROJECT" $project ../conf/gunicorn.service
 sudo cp ../conf/gunicorn.service /etc/systemd/system/$app.service
 sudo systemctl daemon-reload
-sudo cp ../conf/gunicorn_config.py /opt/$app/
+sudo cp ../conf/gunicorn_config.py $final_path
 
 
 ## Reload Nginx and regenerate SSOwat conf
