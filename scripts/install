@@ -29,7 +29,7 @@ ynh_abort_if_errors
 
 
 # Check if admin exists
-ynh_user_exists $admin 
+ynh_user_exists $admin \
     || ynh_die "Wrong admin"
 
 ynh_app_setting_set "$app" admin "$admin"
