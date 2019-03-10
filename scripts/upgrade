@@ -1,8 +1,0 @@
-#!/bin/bash
-# TODO: factorisation avec le install, faire un _common.sh
-- git stash # ou pas si on veut un bon gros crash au cas où on a des modifs locales… au moins on sera au courant…
-- git pull
-- pip -r requirements.txt
-- migrate
-- collectstatic
-- reload service systemctl

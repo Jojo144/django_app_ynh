@@ -31,7 +31,6 @@ ynh_app_setting_set "$app" project "$project"
 ynh_app_setting_set "$app" domain "$domain"
 ynh_app_setting_set "$app" path "$path"
 ynh_app_setting_set "$app" admin "$admin"
-# ynh_app_setting_set "$app" passwd "$passwd"
 ynh_app_setting_set "$app" email "$email"
 
 
@@ -72,9 +71,6 @@ ynh_replace_string "YNH_APP_STATIC_ROOT" $final_path/static $local_settings
 # Set permissions
 sudo chown -R $app:www-data $final_path
 
-# todo
-# sudo yunohost app addaccess $app -u $admin
-
 
 # Log folder
 sudo mkdir -p /var/log/$app
@@ -85,7 +81,7 @@ sudo chgrp -R www-data /var/log/$app
 sudo -u $app $venv_python $app_path/manage.py migrate --noinput
 sudo -u $app $venv_python $app_path/manage.py collectstatic --noinput
 
-#Create the admin
+# Create the admin
 echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('${admin}', '${email}', '${passwd}')" | $venv_python $app_path/manage.py shell
 
 
