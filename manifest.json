@@ -50,16 +50,7 @@
                     "fr": "Choisissez l'administrateur de votre application (doit être un utilisateur YunoHost)"
                 },
                 "example": "johndoe"
-            },
-            // {
-            //     "name": "email",
-            //     "type": "email",
-            //     "ask": {
-            //         "en": "Choose email were send notification",
-            //         "fr": "Choisissez l'email vers lequel envoyer les notifications"
-            //     },
-            //     "example": "admin@example.tld"
-            // },
+            }
         ]
     }
 }
