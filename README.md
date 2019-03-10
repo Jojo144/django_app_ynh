@@ -24,5 +24,24 @@ $project/settings_local.py
 
 
 ## TODO
-mysite.wsgi
-local.py
+test multiinstance
+test user already
+
+## On peut faire mieux
+Référencement des logs cf. https://yunohost.org/#/packaging_apps_fr
+Normalize url ?
+
+changeurl
+backup
+restore
+upgrade
+
+ynh_webpath_register
+ynh_add_nginx_config
+ynh_use_logrotate
+
+
+ynh_remove_systemd_config
+ynh_remove_app_dependencies
+ynh_system_user_delete $app
+ynh_secure_remove "/var/log/$app/"

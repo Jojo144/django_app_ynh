@@ -6,50 +6,52 @@ source /usr/share/yunohost/helpers
 
 app=$YNH_APP_INSTANCE_NAME
 
+repo=$YNH_APP_ARG_REPO
+project=$YNH_APP_ARG_PROJECT
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
 admin=$YNH_APP_ARG_ADMIN
-# adminpasswd=$YNH_APP_ARG_ADMIN # TODO + createsuperuser
-
+passwd=$YNH_APP_ARG_PASSWD
+email=$YNH_APP_ARG_EMAIL
 
 final_path=/opt/$app
 
-ynh_clean_setup () {
-    # todo: is it done by remove?
-    ynh_print_info "Cleaning the aborted install. You may want to unistall dependencies also."
-    # sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
-    # sudo systemctl nginx reload
-    # sudo yunohost service remove $app
-    # sudo rm -f /etc/systemd/system/$app.service
-    # sudo systemctl daemon-reload
-    # sudo userdel $app
-    # sudo rm -Rf $final_path
-}
+# We do this first so that we have nothing to remove if we fail
+# FIXME don't delete the user in case of failure here!
+sudo useradd $app -d $final_path \
+    || (ynh_die "User already exists: ${app}.\n Aborting.")
 
 ynh_abort_if_errors
 
 
+path=$(ynh_normalize_url_path $path)
 
-# Check if admin exists
-ynh_user_exists $admin \
-    || ynh_die "Wrong admin"
-
+ynh_app_setting_set "$app" repo "$repo"
+ynh_app_setting_set "$app" project "$project"
+ynh_app_setting_set "$app" domain "$domain"
+ynh_app_setting_set "$app" path "$path"
 ynh_app_setting_set "$app" admin "$admin"
-# todo passwd
+# ynh_app_setting_set "$app" passwd "$passwd"
+ynh_app_setting_set "$app" email "$email"
+
 
 secret=$(ynh_string_random 24) # A bug don't allow to do random string bigger than 24
 ynh_app_setting_set "$app" secret "$secret"
 
 # Check domain/path availability
-sudo yunohost app checkurl "${domain}${path}" -a "$app" \
-    || ynh_die "Path not available: ${domain}${path}"
+ynh_webpath_available $domain $path
+
+# FXME Useful? Make the script fail with
+# This app is already installed. The url cannot be changed just by this function. Look into `app changeurl` if it's available.
+# ynh_webpath_register $app $domain $path
+
 
 # Dependencies
 ynh_install_app_dependencies $pkg_dependencies
 
 sudo mkdir -p $final_path
 app_path=$final_path/app
-sudo git clone $app_repo $app_path
+sudo git clone $repo $app_path
 
 python3 -m venv $final_path/venv
 venv_python=$final_path/venv/bin/python3
@@ -63,14 +65,15 @@ local_settings=$app_path/$project/settings_local.py
 ynh_replace_string "YNH_APP_ARG_ADMIN" $admin $local_settings
 ynh_replace_string "YNH_APP_ARG_DOMAIN" $domain $local_settings
 ynh_replace_string "YNH_APP_ARG_PATH" $path $local_settings
+ynh_replace_string "YNH_APP_ARG_EMAIL" $secret $local_settings
 ynh_replace_string "YNH_APP_SECRET_KEY" $secret $local_settings
 ynh_replace_string "YNH_APP_STATIC_ROOT" $final_path/static $local_settings
 
 # Set permissions
-sudo useradd $app -d $final_path || ynh_die "User already exists: ${app}"
 sudo chown -R $app:www-data $final_path
 
-sudo yunohost app addaccess $app -u $admin
+# todo
+# sudo yunohost app addaccess $app -u $admin
 
 
 # Log folder
@@ -81,6 +84,9 @@ sudo chgrp -R www-data /var/log/$app
 
 sudo -u $app $venv_python $app_path/manage.py migrate --noinput
 sudo -u $app $venv_python $app_path/manage.py collectstatic --noinput
+
+#Create the admin
+echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('${admin}', '${email}', '${passwd}')" | $venv_python $app_path/manage.py shell
 
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
