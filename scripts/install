@@ -51,14 +51,14 @@ sudo git clone $app_repo $final_path
 app_path=$final_path/app
 
 python3 -m venv  $final_path/venv
-alias venv_python='$final_path/venv/bin/python3'
-alias venv_pip='$final_path/venv/bin/pip'
+venv_python='$final_path/venv/bin/python3'
+venv_pip='$final_path/venv/bin/pip'
 # PyMySQL → cryptography → setuptools>=18.5
 # Required on Jessie, Stretch has setuptools>=18.5
 # venv_pip install 'setuptools>=18.5'
 
-venv_pip install gunicorn
-venv_pip install -r $app_path/requirements.txt
+$venv_pip install gunicorn
+$venv_pip install -r $app_path/requirements.txt
 
 # Configuration Django
 ynh_replace_string "YNH_APP_ARG_ADMIN" $admin $app_path/local_settings.py
@@ -80,8 +80,8 @@ sudo chown -R $app /var/log/$app
 sudo chgrp -R www-data /var/log/$app
 
 
-sudo -u $app venv_python $app_path/manage.py migrate --noinput
-sudo -u $app venv_python $app_path/manage.py collectstatic --noinput
+sudo -u $app $venv_python $app_path/manage.py migrate --noinput
+sudo -u $app $venv_python $app_path/manage.py collectstatic --noinput
 # QUESTION: où_collectstatic dépose-t-il ses fichiers ?
 
 
