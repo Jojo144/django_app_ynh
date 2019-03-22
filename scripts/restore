@@ -1,0 +1,35 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+app=$YNH_APP_INSTANCE_NAME
+domain=$(ynh_app_setting_get "$app" domain)
+path=$(ynh_app_setting_get "$path" domain)
+
+final_path=/opt/$app
+
+
+ynh_webpath_available $domain $path_url \
+    || ynh_die "Path not available: ${domain}${path_url}"
+
+test ! -d $final_path \
+    || ynh_die "There is already a directory: $final_path "
+
+ynh_system_user_create $app
+ynh_install_app_dependencies $pkg_dependencies
+sudo chown -R $app:www-data $final_path
+
+ynh_restore_file "$final_path"
+ynh_restore_file "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_restore_file "/etc/systemd/system/$app.service"
+
+# sudo systemctl daemon-reload ?
+sudo service nginx reload
+sudo systemctl start $app
+sudo systemctl enable $app
+sudo yunohost service add $app -l /var/log/gunicorn/$app.log
+
+# sudo yunohost app ssowatconf ?
