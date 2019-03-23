@@ -8,7 +8,7 @@ app=$YNH_APP_INSTANCE_NAME
 domain=$(ynh_app_setting_get "$app" domain)
 
 sudo service $app stop
-sudo killall $app
+# sudo killall $app  # seems useless
 
 # Remove sources and configuration files
 sudo rm -Rf /opt/$app

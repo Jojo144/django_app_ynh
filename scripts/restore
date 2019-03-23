@@ -17,14 +17,26 @@ ynh_webpath_available $domain $path_url \
 
 test ! -d $final_path \
     || ynh_die "There is already a directory: $final_path "
+nginx_conf=/etc/nginx/conf.d/$domain.d/$app.conf
+if [ -f $conf ]; then
+    ynh_die "There is already a nginx conf file at this path: $conf "
+fi
+gunicorn_path=/etc/systemd/system/$app.service
+if [ -f $gunicorn_path ]; then
+    ynh_die "There is already a gunicorn service file at this path: $gunicorn_path "
+fi
 
-ynh_system_user_create $app
+# We do this first so that we have nothing to remove if we fail
+# FIXME don't delete the user in case of failure here!
+sudo useradd $app -d $final_path \
+    || (ynh_die "User already exists: ${app}.\n Aborting.")
+
 ynh_install_app_dependencies $pkg_dependencies
 sudo chown -R $app:www-data $final_path
 
 ynh_restore_file "$final_path"
-ynh_restore_file "/etc/nginx/conf.d/$domain.d/$app.conf"
-ynh_restore_file "/etc/systemd/system/$app.service"
+ynh_restore_file "$nginx_conf$"
+ynh_restore_file "$gunicorn_path"
 
 # sudo systemctl daemon-reload ?
 sudo service nginx reload
