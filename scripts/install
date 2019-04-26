@@ -64,7 +64,7 @@ local_settings=$app_path/$project/settings_local.py
 ynh_replace_string "YNH_APP_ARG_ADMIN" $admin $local_settings
 ynh_replace_string "YNH_APP_ARG_DOMAIN" $domain $local_settings
 ynh_replace_string "YNH_APP_ARG_PATH" $path $local_settings
-ynh_replace_string "YNH_APP_ARG_EMAIL" $secret $local_settings
+ynh_replace_string "YNH_APP_ARG_EMAIL" $email $local_settings
 ynh_replace_string "YNH_APP_SECRET_KEY" $secret $local_settings
 ynh_replace_string "YNH_APP_STATIC_ROOT" $final_path/static $local_settings
 
