@@ -56,6 +56,7 @@ python3 -m venv $final_path/venv
 venv_python=$final_path/venv/bin/python3
 venv_pip=$final_path/venv/bin/pip
 
+$venv_pip install pip --upgrade
 $venv_pip install gunicorn
 $venv_pip install -r $app_path/requirements.txt
 
