@@ -13,7 +13,7 @@ It takes some inspiration from:
 Install with:
 
 ```
-sudo yunohost app install https://github.com/Jojo144/ynh_django_app
+sudo yunohost app install https://github.com/Jojo144/django_app_ynh
 ```
 
 The installer will ask you:
@@ -27,7 +27,7 @@ The installer will ask you:
 This was tested with: https://github.com/Jojo144/tableau-des-permanences
 
 ```
-sudo yunohost app install -f --debug /vagrant/ynh_django_app -a "domain=ynh.local&path=/&admin=admin&repo=/vagrant/tableau-des-permanences&project=mysite&email=yo@example.tld&passwd=pouetpouet"
+sudo yunohost app install -f --debug /vagrant/django_app_ynh -a "domain=ynh.local&path=/&admin=admin&repo=/vagrant/tableau-des-permanences&project=mysite&email=yo@example.tld&passwd=pouetpouet"
 ```
 
 ## Assumptions

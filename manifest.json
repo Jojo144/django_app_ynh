@@ -11,9 +11,9 @@
     "maintainer": {
         "name": "jojo144",
         "email": "jojo144@girole.fr",
-        "url": "https://github.com/Jojo144/ynh_django_app"
+        "url": "https://github.com/Jojo144/django_app_ynh"
     },
-    "url": "https://github.com/Jojo144/ynh_django_app",
+    "url": "https://github.com/Jojo144/django_app_ynh",
     "requirements": {
         "yunohost": ">> 3.0"
     },
