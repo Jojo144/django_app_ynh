@@ -3,7 +3,7 @@ django_app_ynh
 
 This Yunohost package is intended to install every simple Django application on Yunohot.
 
-It takes some inspirtaion from:
+It takes some inspiration from:
   - Wifi With Me for YunoHost https://code.ffdn.org/ljf/wifiwithme_ynh
   - https://github.com/artus40/djangoapp_ynh/
 
@@ -34,8 +34,9 @@ sudo yunohost app install -f --debug /vagrant/ynh_django_app -a "domain=ynh.loca
 
 The code in the repository of your application is supposed to contain:
 
-  - requirements.txt
-  - DjangoProjectName/settings_local.py
+  - a file `requirements.txt`
+  - a file `DjangoProjectName/settings_ynh.py.example`
+	This file will be copied to `DjangoProjectName/settings_ynh.py` and then modified (to not modify a versioned file). See the example for ... an example!
 
 
 
