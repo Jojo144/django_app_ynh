@@ -88,6 +88,13 @@ echo "from django.contrib.auth import get_user_model; User = get_user_model(); U
 
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
+if [ "$path" = "/" ]
+then
+    # to avoid "//static"
+    ynh_replace_string "STATICPATHTOCHANGE" "/static" ../conf/nginx.conf
+else
+    ynh_replace_string "STATICPATHTOCHANGE" "$path/static" ../conf/nginx.conf
+fi
 ynh_replace_string "PATHTOCHANGE" $path ../conf/nginx.conf
 ynh_replace_string "YNH_APP_INSTANCE_NAME" $app ../conf/nginx.conf
 sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
