@@ -80,7 +80,7 @@
             },
 	    {
                 "name": "email",
-                "type": "email",
+                "type": "string",
                 "ask": {
                     "en": "Choose email were send notification",
                     "fr": "Choisissez l'email vers lequel envoyer les notifications"
